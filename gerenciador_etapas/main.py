@@ -16,7 +16,7 @@ for etapa in ordem_das_etapas_2:
     sys.path.append(os.path.join(caminho_relativo_2, etapa))
     
 from static.registrar_consultar import Registers
-# from gerenciador_etapas.etapas.cadastro_site_aneel.main import CadastroSiteAneel
+from gerenciador_etapas.etapas.cadastro_site_aneel.main import CadastroSiteAneel
 # from gerenciador_etapas.etapas.extract_data_cbill import main
 # from gerenciador_etapas.etapas.extract_data_sicap import main
 # from gerenciador_etapas.etapas.extract_data_gedis import main
@@ -28,8 +28,8 @@ class GerenciadorEtapas:
         self.logger_processo = logger_processo
         self.inst_register = inst_register
         self.tabela_etapa = 'cadastro_aneel_go.etapa'
-        # self.inst_cadastro_site_aneel = CadastroSiteAneel(logger_nota= self.logger_nota,
-        #                                                   inst_register=self.inst_register)
+        self.inst_cadastro_site_aneel = CadastroSiteAneel(logger_nota= self.logger_nota,
+                                                          inst_register=self.inst_register)
   
     def atualizar_fila_processado(self, id_nota_fila):
         dicionario = {
@@ -42,29 +42,52 @@ class GerenciadorEtapas:
         )
            
     def migracao_para_tabela_nota(self, uc, ss_do_parecer) -> int | None:
+        """
+        Migra dados para a tabela 'nota' no banco de dados.
+
+        Args:
+            uc (str): O valor do campo 'uc' a ser inserido na tabela.
+            ss_do_parecer (str): O valor do campo 'ss_do_parecer' a ser inserido na tabela.
+
+        Returns:
+            int | None: O ID do registro inserido ou None, dependendo da operação realizada.
+        """
+        # Cria uma consulta SQL para verificar se já existem registros com os mesmos valores de 'uc' e 'ss_do_parecer'
         sql_consulta_nota = f'''
-        select id, repetir from cadastro_aneel_go.nota
-        where uc = '{uc}' and ss_do_parecer = '{ss_do_parecer}'
+        SELECT * FROM cadastro_aneel_go.nota
+        WHERE uc = '{uc}' 
+        AND ss_do_parecer = '{ss_do_parecer}
+        '
         '''
+        # Executa a consulta SQL
         lista_notas = self.inst_register.consultar_notas(
             sql=sql_consulta_nota
         )
+
+        # Verifica se não há notas correspondentes na consulta
         if len(lista_notas) == 0: 
+            # Se não houver, cria um dicionário de inserção com os valores de 'uc' e 'ss_do_parecer'
             dicionario_insercao = {
-                'uc': uc,
-                'ss_do_parecer': ss_do_parecer
+                'uc': uc
+                ,'ss_do_parecer': ss_do_parecer
             }
+            # Insere os dados na tabela 'nota' e obtém o ID do registro inserido
             id_nota = self.inst_register.registro_sucesso(
                 dicionario=dicionario_insercao,
                 tabela='cadastro_aneel_go.nota'
             )
         else:
+            # Se houver notas correspondentes
             dicionario_nota = lista_notas[0]
+            # Verifica se a nota correspondente pode ser repetida (indicada pelo valor da coluna 'repetir')
             if dicionario_nota['repetir']:
+                # Se puder ser repetida, retorna o ID da nota existente
                 id_nota = dicionario_nota['id']
             else:
+                # Se não puder ser repetida, retorna None indicando que nenhum novo registro foi inserido
                 return None
         
+        # Retorna o ID do registro inserido ou None, dependendo da operação realizada
         return id_nota
 
     def definir_etapa(self, id_nota) -> tuple:
@@ -76,7 +99,7 @@ class GerenciadorEtapas:
             sql=sql_consulta_etapa
         )
         if len(lista_etapas) == 0: 
-            etapa = 'Extração informações SAP CCS'
+            etapa = 'Verificar Cadastro Site ANEEL'
             
             dicionario_etapa = {
                 'nota_fk': id_nota,
@@ -101,52 +124,51 @@ class GerenciadorEtapas:
     
     def execucao(self, id_etapa, etapa, id_nota):
         if etapa == 'Verificar Cadastro Site ANEEL':
-            # self.inst_extracaosapccs.execucao(id_nota=id_nota)
+            self.inst_cadastro_site_aneel.verificar_cadastro()
             self.inst_register.atualizar_registro(dicionario={
                                                     'concluido': True
-                                                    ,'update_at': datetime.datetime.now()
-                                                    },
+                                                    ,'update_at': datetime.datetime.now()},
                                                   tabela=self.tabela_etapa, id_=id_etapa)
-            etapa = 'Extração de dados no EQTLINFO'
+            etapa = 'Extrair dados CBILL'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
                                                            tabela=self.tabela_etapa)
             id_etapa = etapa_fk
 
-        if etapa == 'Extração de dados no EQTLINFO':
+        if etapa == 'Extrair dados CBILL':
             # self.inst_extracaoeqtlinfo.extracao(id_nota=id_nota)
             self.inst_register.atualizar_registro(dicionario={
                                                             'concluido': True
                                                             ,'update_at': datetime.datetime.now()},
                                                   tabela=self.tabela_etapa, id_=id_etapa)
-            etapa = 'Gerar carta'
+            etapa = 'Extrair dados SICAP'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
                                                            tabela=self.tabela_etapa)
             id_etapa = etapa_fk
 
-        if etapa == 'Gerar carta':
-            self.inst_gerar_carta.criarcarta(id_nota=id_nota)
+        if etapa == 'Extrair dados SICAP':
+            # self.inst_gerar_carta.criarcarta(id_nota=id_nota)
             self.inst_register.atualizar_registro(dicionario={
                                                             'concluido': True
                                                             ,'update_at': datetime.datetime.now()},
                                                   tabela=self.tabela_etapa, id_=id_etapa)
-            etapa = 'Comunicar conclusão no SAP CRM'
+            etapa = 'Extrair dados GEDIS'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
                                                            tabela=self.tabela_etapa)
             id_etapa = etapa_fk
 
-        if etapa == 'Comunicar conclusão no SAP CRM':
-            self.inst_conclusaocrm.conclusao_crm(id_nota=id_nota)
+        if etapa == 'Extrair dados GEDIS':
+            # self.inst_conclusaocrm.conclusao_crm(id_nota=id_nota)
             self.inst_register.atualizar_registro(dicionario={
                                                             'concluido': True
                                                             ,'update_at': datetime.datetime.now()},
                                                   tabela=self.tabela_etapa, id_=id_etapa)
-            etapa = 'Conclusão da nota no SAP CCS'
+            etapa = 'Criar cadastro Site Aneel'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
                                                            tabela=self.tabela_etapa)
             id_etapa = etapa_fk
 
-        if etapa == 'Conclusão da nota no SAP CCS':
-            self.inst_concluir_nota.conclusao(id_nota=id_nota)
+        if etapa == 'Criar cadastro Site Aneel':
+            # self.inst_concluir_nota.conclusao(id_nota=id_nota)
             self.inst_register.atualizar_registro(dicionario={
                                                     'concluido': True
                                                     # ,'update_at': datetime.datetime.now()

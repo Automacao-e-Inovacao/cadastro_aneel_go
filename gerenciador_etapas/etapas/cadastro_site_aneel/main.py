@@ -8,12 +8,12 @@ from funcao_formulario_de_cadastro import formulario_cadastro
 from funcao_formulario_de_informacoes_tecnicas import formulario_tecnico
 from funcao_tela_dados_usina import tel_dados_usina
 from funcao_tela_final_codigo_gd import tela_para_obtencao_codigo_gd
-
+from static.registrar_consultar import Registers
 
 class CadastroSiteAneel:
     tabela = 'cadastro_aneel_go.nota'
 
-    def __init__(self, logger_nota: logging.Logger, inst_register) -> None:
+    def __init__(self, logger_nota: logging.Logger, inst_register: Registers) -> None:
         self.logger_nota = logger_nota
         self.conexao_datamart = inst_register
 
@@ -55,7 +55,6 @@ class CadastroSiteAneel:
                                            f'fonte ou excluir UC com GD cadastradas" na tela de menu ')
         else:
             self.logger_nota.error(f'Titulo da página é diferente de links :|: {titulo_da_pagina}')
-
 
     def tratamento_dos_dados_da_tupla(self, tupla):
         tupla['data_solicitacao_conexao_gd'] = '{:02d}/{:02d}/{:04d}'.format(tupla['data_solicitacao_conexao_gd'].day,
@@ -129,9 +128,6 @@ class CadastroSiteAneel:
 
     def tratamento_da_nota(self, tupla_notas: dict):
         self.tratamento_dos_dados_da_tupla(tupla=tupla_notas)
-        # self.tratamento_do_caso_de_inversor_e_modulo(tupla=tupla_notas, lista_fab_mod=lista_fab_mod,
-        #                                              lista_fab_inv=lista_fab_inv, lista_mode_mod=lista_mode_mod,
-        #                                              lista_mode_inv=lista_mode_inv)
         self.retornar_a_tela_de_busca()
 
         titulo_da_pagina = self.driver.current_url
@@ -265,3 +261,18 @@ class CadastroSiteAneel:
                 raise AssertionError('Houve um erro ao receber o código gd final da função tratamento da nota')
         else:
             raise AssertionError(f'Não consegui achar a nota pelo id_nota, ou a nota está duplicada na tabela :|: {len(lista_notas)}')
+
+    def verificar_cadastro(self, id_nota):
+        sql_consulta_uc = f'''
+            SELECT id, uc FROM cadastro_aneel_go.nota
+            where id = {id_nota}
+            '''
+        uc = self.conexao_datamart.consultar_notas(sql=sql_consulta_uc)
+        try:
+            self.driver.get('http://www2.aneel.gov.br/scg/gd/login.asp')
+        except:
+            self.driver = webdriver.Chrome()
+            self.driver.implicitly_wait(60)
+            self.driver.get('http://www2.aneel.gov.br/scg/gd/login.asp')
+        login(self.driver, self.usuario_aneel, self.senha_aneel)
+        consultar_registro(self.driver, uc=uc)

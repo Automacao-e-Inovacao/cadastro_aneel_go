@@ -16,6 +16,8 @@ class Nota(Base):
     ss_do_parecer = Column(VARCHAR, nullable=False)
     tempo_criacao = Column(DateTime)
     tempo_modificacao = Column(DateTime)
+    repetir = Column(Boolean, default=True)
+    concluido = Column(Boolean, default=False)
     num_cadastro_gd = Column(String)
     nome_cliente = Column(String)
     classe_consumo = Column(String)

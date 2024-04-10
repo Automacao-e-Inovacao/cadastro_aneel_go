@@ -9,7 +9,8 @@ if __name__ == "__main__":
         caminho_relativo = os.path.dirname(caminho_relativo)
         sys.path.append(caminho_relativo)
 
-        ordem_das_etapas = ['static', 'cadastro_site_aneel','gerenciador_etapas_gd']
+        ordem_das_etapas = ['static', 'verificar_cadastro', 'extracao_cbill', 'extracao_sicap',
+                    'extracao_gedis', 'criar_cadastro', 'modificar_cadastro']
         
         for etapa in ordem_das_etapas:
             sys.path.append(os.path.join(caminho_relativo, etapa))
@@ -69,13 +70,13 @@ if __name__ == "__main__":
         logger_nota.addHandler(inst_handler_personalizado)
         
         ## Reseta a tabela fila para inserir novos dados
-        #inst_register.reset_fila()
+        # inst_register.reset_fila()
         
-        ## Executa a atualização da planilha de conexões (Base para tratativa)        
+        ## Executa a atualização da planilha de conexões (Base para tratativa)
         # inst_readexcel.executar_atualizacao(caminho_planilha=inst_readexcel.caminho_do_arquivo)
         
-        #Insere os dados da planilha de conexões no datamart     
-        # inst_readexcel.inserir_dados_no_datamart()
+        #Insere os dados da planilha de conexões no datamart
+        # inst_register.inserir_dados_no_datamart()
 
         sql_busca_fila = f'''
             SELECT id, uc, ss_do_parecer FROM cadastro_aneel_go.fila
@@ -90,14 +91,14 @@ if __name__ == "__main__":
             )
         
         for nota_fila in lista_de_notas_fila:
-    
+            
             #Mandando da tabela fila pra tabela nota               
             inst_gerenciador_etapas.atualizar_fila_processado(id_nota_fila=nota_fila['id'])    
 
             id_tabela_nota = inst_gerenciador_etapas.migracao_para_tabela_nota(
-                uc=nota_fila['uc'], 
-                ss_do_parecer=nota_fila['ss_do_parecer']
+                uc=nota_fila['uc'], ss_do_parecer=nota_fila['ss_do_parecer']
                                                                                 )
+
             if id_tabela_nota is None:
                 continue
             id_etapa, etapa = inst_gerenciador_etapas.definir_etapa(

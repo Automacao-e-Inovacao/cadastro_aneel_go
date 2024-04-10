@@ -68,7 +68,16 @@ class DatamartRepository:
 
         # Confirmar a transação
         self.session.commit()
+        
+    def save_table_nota(self, dicionario):
+        # Converter o DataFrame para uma lista de dicionários
+        dataframe = pd.DataFrame([dicionario])
 
+        # Inserir o dicionário modificado na tabela do banco de dados
+        self.session.bulk_insert_mappings(Nota, dataframe)
+
+        # Confirmar a transação
+        self.session.commit()
 
     def save_etapas_to_table(self, data):
         """
