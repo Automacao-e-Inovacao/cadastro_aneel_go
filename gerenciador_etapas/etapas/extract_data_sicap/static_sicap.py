@@ -17,7 +17,7 @@ class StaticSicap:
     def __init__(self, logger_nota: logging.Logger, inst_register: Registers) -> None:
         self.logger_nota = logger_nota
         self.conexao_datamart = inst_register
-        
+    
     def click_if_found(self, navegador, element_click): 
         try_order = [By.ID, By.CLASS_NAME, By.XPATH, By.TAG_NAME, By.CSS_SELECTOR]
         for locator_type in try_order:

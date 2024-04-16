@@ -27,7 +27,7 @@ from static.handler_log_nota import HandlerPersonalizadoNota
 from static.registrar_consultar import Registers
 from static.find_notes import FindNotes
 from static.erros import ErroPrevisto
-from etapas.read_excel_file import ReadExcelFile
+from gerenciador_etapas.etapas.read_excel_file import ReadExcelFile
 
 if __name__ == "__main__":
 

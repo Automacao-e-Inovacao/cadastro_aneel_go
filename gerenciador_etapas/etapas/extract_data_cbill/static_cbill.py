@@ -59,9 +59,7 @@ def login_cbill(self, driver):
         
     except Exception as e:
         print("Erro ao fazer login no CBILL:", e)
-    
-#Clicar apenas quando o elemento estiver visível
-        
+   
 def search_frame(navegador, mainframe_id, request_frame_id):
     while True:
         try:
@@ -136,7 +134,6 @@ def encontrar_conexao(navegador, mainframe, midframe, ss, buscar):
                 pass
     except:
         raise Exception("Failed to Encontrar SS Parecer de Acesso")
-    
 
 def find_ss_do_parecer(driver, ss_do_parecer_value):
     try:
@@ -187,7 +184,48 @@ def click_ss_do_parecer(navegador, class_name, ss_do_parecer_value):
     except Exception as e:
         print("Erro ao clicar no elemento:", e)
 
+def extrair_email_e_tel(navegador):
+    element_contato = '//*[@id="FoldersActive"]/table/tbody/tr[2]/td[2]/div[1]/table/tbody/tr/td[2]/a'
+    navegador.find_element(by=By.XPATH, value=element_contato).click()
+    try:
+        # Encontrar todas as tabelas com a classe "tableHV"
+        tabelas = navegador.find_elements(by=By.XPATH, value='//*[@class="tableHV"]')
+        
+        # Verificar se há pelo menos uma tabela encontrada
+        if tabelas:
+            # Iterar sobre as tabelas encontradas
+            for tabela in tabelas:
+                # Obter o texto da tabela
+                texto_tabela = tabela.text
+                # Verificar se a tabela tem texto
+                if texto_tabela:
+                    # Regex para extrair email
+                    email_regex = r"E-mail:\s+(\S+@\S+)"
+                    # Regex para extrair número de telefone celular
+                    celular_regex = r"\(?(?<!\d)(\d{2})\)?\s*(?:|-|\.)?(\d{5})\s*(?:|-|\.)?(\d{4})"
 
+                    # Procurar por email no texto da tabela
+                    email_match = re.search(email_regex, texto_tabela)
+                    if email_match:
+                        email = email_match.group(1)
+                    else:
+                        email = None
 
+                    # Procurar por número de telefone celular no texto da tabela
+                    celular_match = re.search(celular_regex, texto_tabela)
+                    if celular_match:
+                        celular = f"{celular_match.group(1)} {celular_match.group(2)}-{celular_match.group(3)}"
+                    else:
+                        celular = None
+
+                    return email, celular
+            # Se nenhuma tabela tiver conteúdo, retornar uma mensagem indicando isso
+            return "Nenhuma tabela com conteúdo encontrado."
+        else:
+            # Se nenhuma tabela for encontrada, retornar uma mensagem indicando isso
+            return "Nenhuma tabela encontrada."
+    except Exception as e:
+        # Se ocorrer algum erro, retornar a mensagem de erro
+        return f"Erro ao extrair email e telefone: {e}"
 
 

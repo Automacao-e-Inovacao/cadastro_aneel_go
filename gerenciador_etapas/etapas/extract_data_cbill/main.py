@@ -3,7 +3,7 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from gerenciador_etapas.etapas.extract_data_cbill.elementos_cbill import login_cbill
+from gerenciador_etapas.etapas.extract_data_cbill.static_cbill import login_cbill
 
 class ExtracoesDadosCbill:
     def __init__(self, logger_nota: logging.Logger, inst_register) -> None:

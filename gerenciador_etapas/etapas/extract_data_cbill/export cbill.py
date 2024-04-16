@@ -1,4 +1,4 @@
-# %%
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -9,7 +9,6 @@ import time
 import os
 import re
 
-# %%
 link_cbill = 'http://10.125.6.102:11090/cbill/loginPage.do'
 usuario_cbill = 'TATE5507011'
 senha_cbill = '$mbegp3jJ'
@@ -31,17 +30,14 @@ control_o = 'receptionType6'
 ss = '//*[@id="SS"]'
 ss_do_parecer = '164707086'
 
-# %%
 chrome_options = webdriver.ChromeOptions()
 navegador = webdriver.Chrome(options= chrome_options)
 navegador.implicitly_wait(200)
 navegador.get(link_cbill)
 
-# %%
 #Mudando o implicity wait para testes de elemtento (ALTERAR DEPOIS)
 navegador.implicitly_wait(1)
 
-# %%
 def tentativa_login(navegador, usuario_cbill, senha_cbill):
     try:
         # Preencher usuário e senha
@@ -60,7 +56,6 @@ def tentativa_login(navegador, usuario_cbill, senha_cbill):
 tentativa_login(navegador = navegador, usuario_cbill=usuario_cbill, senha_cbill=senha_cbill)
 
 
-# %%
 #Clicar apenas quando o elemento estiver visível
 def into_atendimento_ao_cliente():
     while True:
@@ -75,7 +70,6 @@ def into_atendimento_ao_cliente():
             pass
 into_atendimento_ao_cliente()
 
-# %%
 def select_tab(navegador):
     # Obtem todos os identificadores de janelas/abas abertas
     titulo_aba_desejada = "CPqD Energia - Atendimento ao cliente"
@@ -96,7 +90,6 @@ def select_tab(navegador):
 select_tab(navegador)
 
 
-# %%
 def search_frame(navegador, mainframe_id, request_frame_id):
     while True:
         try:
@@ -121,7 +114,6 @@ def click_if_found(navegador, element_click):
             pass
 
 
-# %%
 def consult_uc(navegador, topframe, midframe, control_o, uc_code, uc_cbill, buscar):
     try:
         search_frame(navegador, main_frame, topframe)
@@ -147,7 +139,6 @@ def consult_uc(navegador, topframe, midframe, control_o, uc_code, uc_cbill, busc
     except:
         raise Exception("Failed to click Buscar")
 
-# %%
 def hist_atendimento(navegador, bottonframe):
     time.sleep(5)
     try:
@@ -160,10 +151,8 @@ def hist_atendimento(navegador, bottonframe):
     except:
         raise Exception("Failed to click Historico de Atendimento")
 
-# %%
 navegador.find_element(by=By.XPATH, value='//*[@id="historico"]/div')
 
-# %%
 def encontrar_frame_atual(driver):
     """
     Retorna o nome do frame em que o webdriver está atualmente.
@@ -183,7 +172,6 @@ else:
     print("Não estou em nenhum frame.")
 
 
-# %%
 def encontrar_conexao(navegador, mainframe, midframe, ss, buscar):
     hist_atendimento(navegador, botton_frame)
     try:
@@ -202,7 +190,6 @@ def encontrar_conexao(navegador, mainframe, midframe, ss, buscar):
         raise Exception("Failed to Encontrar SS Parecer de Acesso")
 
 
-# %%
 def ver_detalhes_do_cliente(navegador, mainframe, midframe, topframe):
     time.sleep(5)
     try:
@@ -226,7 +213,6 @@ def ver_detalhes_do_cliente(navegador, mainframe, midframe, topframe):
             raise Exception("Falha ao ir para ver detalhes do cliente")
 
 
-# %%
 def extrair_nome_e_cpf(navegador):
     ver_detalhes_do_cliente(navegador, main_frame, mid_frame)
     # Consulta os elementos pela classe 'textCellBdr'
@@ -262,7 +248,6 @@ def extrair_nome_e_cpf(navegador):
 
 
 
-# %%
 nome, cpf = extrair_nome_e_cpf(navegador)
 if nome and cpf:
     print("Nome:", nome)
@@ -270,7 +255,6 @@ if nome and cpf:
 else:
     print("Não foi possível extrair o Nome e o CPF.")
 
-# %%
 def get_first_element_and_matching_element(driver, class_name, ss_do_parecer_value):
     try:
         first_element_id = None
@@ -324,44 +308,6 @@ if matching_element:
 else:
     print("Nenhum quinto elemento correspondente encontrado.")
 
-
-# %%
-def consult_uc(navegador, topframe, midframe, control_o, uc_code, uc_cbill, buscar):
-    try:
-        search_frame(navegador, main_frame, topframe)
-        click_if_found(navegador, control_o)
-    except:
-        raise Exception("Failed to click Control + O")
-
-    try:
-        search_frame(navegador, main_frame, midframe)
-        while True:
-            try:
-                uc_input = navegador.find_element(By.XPATH, uc_code)
-                uc_input.send_keys(uc_cbill)
-                break
-            except NoSuchElementException:
-                pass
-    except:
-        pass  # Não fazer nada se o campo UC não for encontrado
-
-    try:
-        search_frame(navegador, main_frame, midframe)
-        click_if_found(navegador, buscar)
-    except:
-        raise Exception("Failed to click Buscar")
-
-def hist_atendimento(navegador, bottonframe):
-    time.sleep(5)
-    try:
-        navegador.switch_to.default_content()
-        navegador.switch_to.frame(bottonframe)
-        element = navegador.find_element(by=By.XPATH, value='//*[@id="historico"]/div')
-        while not element.is_displayed():
-            pass
-        element.click()
-    except NoSuchElementException:
-        raise Exception("Failed to click Historico de Atendimento")
 
 def encontrar_conexao(navegador, mainframe, midframe, ss, buscar):
     hist_atendimento(navegador, botton_frame)
@@ -434,14 +380,6 @@ def extrair_nome_e_cpf(navegador):
         print("Não há elementos suficientes para acessar o segundo.")
         return None, None
 
-
-# %%
-extrair_nome_e_cpf(navegador)
-
-# %%
-class_consultar_email = navegador.find_elements(by=By.XPATH, value='//*[@class="tableHV"]')
-
-# %%
 def obter_texto_primeira_tabela(navegador):
     try:
         # Encontrar todas as tabelas com a classe "tableHV"
@@ -466,24 +404,7 @@ def obter_texto_primeira_tabela(navegador):
         # Se ocorrer algum erro, retornar a mensagem de erro
         return f"Erro ao obter texto da tabela: {e}"
 
-# Exemplo de uso:
-texto_tabela = obter_texto_primeira_tabela(navegador)
-print(texto_tabela)
-
-
-# %%
-
-
-# %%
-encontrar_frame_atual(navegador)
-
-# %%
 ver_detalhes_do_cliente = '/html/body/table/tbody/tr[2]/td[2]/table/tbody/tr/td[3]/a[2]'
-
-# %%
-navegador.find_element(by=By.XPATH, value= ver_detalhes_do_cliente)
-
-# %%
 
 def get_first_element_and_matching_element(driver, class_name,):
     try:
@@ -499,7 +420,6 @@ def get_first_element_and_matching_element(driver, class_name,):
         print("Erro ao encontrar o elemento:", e)
         return None, None
 
-# %%
 try:
     nome, cpf = extrair_nome_e_cpf(navegador)
     if nome and cpf:

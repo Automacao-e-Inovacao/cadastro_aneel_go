@@ -1,4 +1,4 @@
-# %%
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -9,8 +9,6 @@ import time
 import os
 import logging
 
-
-# %%
 link_sicap = 'http://sistemassatelites.equatorial.corp:8080/Sicap-adm/'
 usuario_sicap = 'u5512983'
 senha_sicap = 'Ft$85Gb13:<f>@#$'
@@ -22,7 +20,6 @@ navegador.get(link_sicap)
 #Mudando o implicity wait para testes de elemtento (ALTERAR DEPOIS)
 navegador.implicitly_wait(1)
 
-# %%
 def click_if_found(navegador, element_click): 
     try_order = [By.ID, By.CLASS_NAME, By.XPATH, By.TAG_NAME, By.CSS_SELECTOR]
     for locator_type in try_order:
@@ -49,7 +46,6 @@ def write_if_found(navegador, element, msg):
         except:
             pass
 
-# %%
 class CadastroSiteAneel:
     tabela = 'cadastro_aneel_go.nota'
 
@@ -64,19 +60,7 @@ class CadastroSiteAneel:
         self.empresa_abreviado = 'GO'
 
 
-def login(self, navegador, link):
-    chrome_options = webdriver.ChromeOptions()
-    navegador = webdriver.Chrome(options= chrome_options)
-    navegador.implicitly_wait(200)
-    navegador.get(link)
-    #Mudando o implicity wait para testes de elemtento (ALTERAR DEPOIS)
-    navegador.implicitly_wait(1)
 
-
-# %%
-navegador.find_element(by=By.XPATH, value='//*[@class="btn btn-default"]').click()
-
-# %%
 def login(self, navegador=navegador):
     self.element_user = '//*[@id="input_username"]'
     self.element_pwrd = '//*[@id="input_password"]'
@@ -101,7 +85,6 @@ def login(self, navegador=navegador):
     
 id_button_login = login(navegador)
 
-# %%
 def search_ss(self, element_liken):
     self.element_liken = element_liken
     try:
@@ -117,7 +100,6 @@ def search_ss(self, element_liken):
         pass
 
 
-# %%
 # Exemplo de uso
 id_button_login = login(navegador)
 if id_button_login:
@@ -126,7 +108,6 @@ if id_button_login:
     else:
         print("Não foi possível realizar a busca.")
 
-# %%
 element_user_v2 = '//*[@id="username"]'
 element_user = '//*[@id="input_username"]'
 element_pwrd = '//*[@id="password"]'
@@ -134,25 +115,19 @@ usuario_sicap = 'u5512983'
 senha_sicap = 'Ft$85Gb13:<f>@#$'
 
 
-# %%
 element_login = navegador.find_element(by=By.CLASS_NAME, value='fa fa-search')
 element_login.click()
 
-# %%
 navegador.find_element(by=By.CLASS_NAME, value='fa fa-search')
 
-# %%
 element_user = '//*[@id="username"]'
 element_pwrd = '//*[@id="password"]'
 element_search = '//*[@class="fa fa-search"]'
 
-# %%
 element_login = navegador.find_element(by=By.XPATH, value='//*[@class="fa fa-search"]')
 
-# %%
 element_login.click()
 
-# %%
 #Clicar apenas quando o elemento estiver visível
 def into_atendimento_ao_cliente():
     while True:
@@ -167,16 +142,14 @@ def into_atendimento_ao_cliente():
             pass
 into_atendimento_ao_cliente()
 
-# %%
 class ReadExcelFile:
     ss_do_parecer = '164707086'
     
     def __init__(self, ss_do_parecer) -> None:
         self.ss_do_parecer = ss_do_parecer
         
-        pass
+        passw
 
-# %%
 class Sicap:
     def __init__(self) -> None:
         self.button_find = '//*[@id="templateForm:j_idt48"]'
@@ -195,8 +168,6 @@ class Sicap:
         except:
             pass
 
-
-# %%
 
 
 
