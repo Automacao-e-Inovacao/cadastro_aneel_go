@@ -45,6 +45,7 @@ if __name__ == "__main__":
         from static.handler_log_nota import HandlerPersonalizadoNota
         from static.registrar_consultar import Registers
         from static.erros import ErroPrevisto
+        from gerenciador_etapas.etapas.cadastro_site_aneel.static_site_aneel import StaticSiteAneel
         from repository.datamart_repository import DatamartRepository
         from gerenciador_etapas.etapas.read_excel_file import ReadExcelFile
         from gerenciador_etapas.main import GerenciadorEtapas
@@ -57,6 +58,7 @@ if __name__ == "__main__":
         inst_register = Registers()
         datamart = DatamartRepository()
         inst_readexcel = ReadExcelFile()
+        statis_site_aneel = StaticSiteAneel()
         logger_processo = logging.Logger('')
         inst_handler_personalizado = HandlerPersonalizado(inst_register=inst_register, logger=logger_processo)
         logger_processo.setLevel(logging.DEBUG)
@@ -87,7 +89,8 @@ if __name__ == "__main__":
         inst_gerenciador_etapas = GerenciadorEtapas(
             inst_register=inst_register,
             logger_nota=logger_nota,
-            logger_processo=logger_processo
+            logger_processo=logger_processo,
+            static_site_aneel=statis_site_aneel
             )
         
         for nota_fila in lista_de_notas_fila:
@@ -109,6 +112,7 @@ if __name__ == "__main__":
                 'etapa_fk': id_etapa
             }
             
+            #Execução das extrações de dados e cadastro
             try:
                 inst_gerenciador_etapas.execucao(
                     id_etapa = id_etapa,

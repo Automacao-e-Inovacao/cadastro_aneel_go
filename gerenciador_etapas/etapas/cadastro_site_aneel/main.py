@@ -3,20 +3,17 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from funcao_processo_verificar_cadastro import login, consultar_registro
-from funcao_formulario_de_cadastro import formulario_cadastro
-from funcao_formulario_de_informacoes_tecnicas import formulario_tecnico
-from funcao_tela_dados_usina import tel_dados_usina
-from funcao_tela_final_codigo_gd import tela_para_obtencao_codigo_gd
+
 from static.registrar_consultar import Registers
+from gerenciador_etapas.etapas.cadastro_site_aneel.static_site_aneel import StaticSiteAneel
 
 class CadastroSiteAneel:
     tabela = 'cadastro_aneel_go.nota'
 
-    def __init__(self, logger_nota: logging.Logger, inst_register: Registers) -> None:
+    def __init__(self, logger_nota: logging.Logger, inst_register: Registers, inst_static_site_aneel: StaticSiteAneel) -> None:
         self.logger_nota = logger_nota
         self.conexao_datamart = inst_register
-
+        self.static_site_aneel = inst_static_site_aneel
         self.driver = webdriver.Chrome()
         self.driver.implicitly_wait(60)
 
@@ -38,7 +35,7 @@ class CadastroSiteAneel:
             self.driver.get('http://www2.aneel.gov.br/scg/gd/login.asp')
         titulo_da_pagina = self.driver.current_url
         if 'login' in titulo_da_pagina:
-            login(self.driver, self.usuario_aneel, self.senha_aneel)
+            self.static_site_aneel.login(self.driver, self.usuario_aneel, self.senha_aneel)
         else:
             self.logger_nota.error(f'Titulo da página é diferente de login :|: {titulo_da_pagina}')
 
@@ -135,7 +132,7 @@ class CadastroSiteAneel:
             raise AssertionError(
                 f'Página não contem a string adm_empreendimento, como era esperado: {titulo_da_pagina}')
 
-        resultado_funcao = consultar_registro(self.driver, tupla_notas['instalacao'])
+        resultado_funcao = self.static_site_aneel.consultar_registro(self.driver, tupla_notas['instalacao'])
         if 'Incompleta' not in resultado_funcao and not resultado_funcao == 'Não cadastrado':
             split_4 = resultado_funcao.split(' ')
             resultado_funcao = split_4[len(split_4) - 3]
@@ -181,7 +178,7 @@ class CadastroSiteAneel:
 
                 email = [var for var in tupla_notas['email'].split(';')]
 
-                formulario_cadastro(self.driver, tupla_notas['municipio'],
+                self.static_site_aneel.formulario_cadastro(self.driver, tupla_notas['municipio'],
                                     tupla_notas['instalacao'],
                                     tupla_notas['qtd_gd'], tupla_notas['endereco_da_uc'],
                                     tupla_notas['cep'],
@@ -207,7 +204,7 @@ class CadastroSiteAneel:
             raise AssertionError('')
 
         if 'Inclui_Dados' in titulo_da_pagina:
-            formulario_tecnico(self.driver, tupla_notas['pot_modulos_kwp'], tupla_notas['quantidade_modulos'],
+            self.static_site_aneel.formulario_tecnico(self.driver, tupla_notas['pot_modulos_kwp'], tupla_notas['quantidade_modulos'],
                                tupla_notas['pot_inversor_kw'], tupla_notas['qtde_inversores'],
                                tupla_notas['area_arranjos'], tupla_notas['fabricante_modulos'],
                                tupla_notas['modelo_modulo'], tupla_notas['fab_inversor'],
@@ -229,7 +226,7 @@ class CadastroSiteAneel:
             self.logger_nota.critical(f'Erro com o alerta :|: {texto_alert}')
             raise AssertionError('')
         if 'Inclui_CEGanterior' in titulo_da_pagina:
-            tel_dados_usina(self.driver)
+            self.static_site_aneel.tel_dados_usina(self.driver)
         else:
             raise AssertionError(
                 f'Página não contem a string Inclui_CEGanterior, como era esperado: {titulo_da_pagina}')
@@ -238,7 +235,7 @@ class CadastroSiteAneel:
 
         titulo_da_pagina = self.driver.current_url
         if 'Conclusao' in titulo_da_pagina:
-            return tela_para_obtencao_codigo_gd(self.driver, empresa_abreviado=self.empresa_abreviado)
+            return self.static_site_aneel.tela_para_obtencao_codigo_gd(self.driver, empresa_abreviado=self.empresa_abreviado)
         else:
             raise AssertionError(
                 f'Página não contem a string Inclui_CEGanterior, como era esperado: {titulo_da_pagina}')
@@ -274,5 +271,8 @@ class CadastroSiteAneel:
             self.driver = webdriver.Chrome()
             self.driver.implicitly_wait(60)
             self.driver.get('http://www2.aneel.gov.br/scg/gd/login.asp')
-        login(self.driver, self.usuario_aneel, self.senha_aneel)
-        consultar_registro(self.driver, uc=uc)
+        self.static_site_aneel.login(self.driver, self.usuario_aneel, self.senha_aneel)
+        
+        for tupla in uc:
+            id_, uc = tupla  # Desempacotando a tupla
+            self.static_site_aneel.consultar_registro(self.driver, codigo_gd=None, uc=uc)  # Passando o uc corretamente

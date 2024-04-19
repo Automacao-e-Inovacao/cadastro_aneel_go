@@ -14,7 +14,10 @@ class ExtracoesDadosCbill:
 
         self.usuario_cbill = 'TATE5507011'
         self.senha_cbill = '$mbegp3jJ'
-    
+        
+        self.uc_cbill = '10006787760'
+        self.ss_da_planilha = '163890270'
+                
     def consultar_dados_cbill(self) -> None:
         try:
             self.driver.get('http://www2.aneel.gov.br/scg/gd/login.asp')

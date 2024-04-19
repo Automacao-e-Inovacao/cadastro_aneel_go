@@ -17,20 +17,24 @@ for etapa in ordem_das_etapas_2:
     
 from static.registrar_consultar import Registers
 from gerenciador_etapas.etapas.cadastro_site_aneel.main import CadastroSiteAneel
+from gerenciador_etapas.etapas.cadastro_site_aneel.static_site_aneel import StaticSiteAneel
 # from gerenciador_etapas.etapas.extract_data_cbill import main
 # from gerenciador_etapas.etapas.extract_data_sicap import main
 # from gerenciador_etapas.etapas.extract_data_gedis import main
 
 class GerenciadorEtapas:
-    def __init__(self, inst_register:Registers, logger_nota, logger_processo) -> None:
+    def __init__(self, inst_register:Registers, logger_nota, logger_processo, static_site_aneel: StaticSiteAneel) -> None:
         self.tabela = 'cadastro_aneel_go.nota'
         self.logger_nota = logger_nota
         self.logger_processo = logger_processo
         self.inst_register = inst_register
+        self.static_site_aneel = static_site_aneel
         self.tabela_etapa = 'cadastro_aneel_go.etapa'
         self.inst_cadastro_site_aneel = CadastroSiteAneel(logger_nota= self.logger_nota,
-                                                          inst_register=self.inst_register)
-  
+                                                          inst_register=self.inst_register,
+                                                          inst_static_site_aneel=self.static_site_aneel
+                                                          )
+
     def atualizar_fila_processado(self, id_nota_fila):
         dicionario = {
             'processado': True
@@ -123,7 +127,7 @@ class GerenciadorEtapas:
             return id_etapa, etapa
     
     def execucao(self, id_etapa, etapa, id_nota):
-        if etapa == 'Verificar Cadastro Site ANEEL':
+        if etapa == 'Verificar Cadastro Site ANEEL': 
             self.inst_cadastro_site_aneel.verificar_cadastro()
             self.inst_register.atualizar_registro(dicionario={
                                                     'concluido': True
