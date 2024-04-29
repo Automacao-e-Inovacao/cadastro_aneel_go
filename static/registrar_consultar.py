@@ -64,7 +64,7 @@ class Registers:
         df = df.rename(
             columns={
                 'UC': 'uc',
-                'SS': 'ss_do_parecer',                                
+                'numero_ss': 'ss_da_planilha',                                
                 'STATUS_SS':'status_ss',
                 'SERVICO':'servico',
             },
@@ -85,7 +85,7 @@ class Registers:
             excel_file_path = read_excel_file.caminho_do_arquivo
             
             # Lendo o arquivo Excel
-            dataframe = pd.read_excel(excel_file_path, sheet_name="Base", header=None)
+            dataframe = pd.read_excel(excel_file_path, sheet_name="base", header=None)
             
             # Renomeando as colunas do DataFrame
             dataframe = self.rename_dataframe_columns(dataframe)
@@ -112,7 +112,7 @@ class Registers:
                 # Criando um dicionário com os dados da linha
                 data = {
                     'uc': str(row[0]),
-                    'ss_do_parecer': str(row[1]),
+                    'ss_da_planilha': str(row[1]),
                     'status_ss': str(row[2]),
                     'servico': str(row[3]),
                     'created_at': str(row[4]),

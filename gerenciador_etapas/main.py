@@ -18,9 +18,10 @@ for etapa in ordem_das_etapas_2:
 from static.registrar_consultar import Registers
 from gerenciador_etapas.etapas.cadastro_site_aneel.main import CadastroSiteAneel
 from gerenciador_etapas.etapas.cadastro_site_aneel.static_site_aneel import StaticSiteAneel
-# from gerenciador_etapas.etapas.extract_data_cbill import main
-# from gerenciador_etapas.etapas.extract_data_sicap import main
-# from gerenciador_etapas.etapas.extract_data_gedis import main
+from gerenciador_etapas.etapas.extract_data_sicap.main import ExtracoesDadosSicap
+from gerenciador_etapas.etapas.extract_data_cbill.main import ExtracoesDadosCbill
+from gerenciador_etapas.etapas.extract_data_gedis.main import ExtracoesDadosGedis
+
 
 class GerenciadorEtapas:
     def __init__(self, inst_register:Registers, logger_nota, logger_processo, static_site_aneel: StaticSiteAneel) -> None:
@@ -34,7 +35,16 @@ class GerenciadorEtapas:
                                                           inst_register=self.inst_register,
                                                           inst_static_site_aneel=self.static_site_aneel
                                                           )
-
+        self.inst_static_cbill = ExtracoesDadosCbill(logger_nota=self.logger_nota,
+                                                     inst_register=self.inst_register,
+                                                     )
+        self.inst_static_gedis = ExtracoesDadosGedis(logger_nota=self.logger_nota,
+                                                     inst_register=self.inst_register,
+                                                     )
+        self.inst_static_sicap = ExtracoesDadosSicap(logger_nota=self.logger_nota,
+                                                     inst_register=self.inst_register,
+                                                     )
+        
     def atualizar_fila_processado(self, id_nota_fila):
         dicionario = {
             'processado': True
@@ -45,7 +55,7 @@ class GerenciadorEtapas:
             id_ = id_nota_fila
         )
            
-    def migracao_para_tabela_nota(self, uc, ss_do_parecer) -> int | None:
+    def migracao_para_tabela_nota(self, uc, ss_da_planilha) -> int | None:
         """
         Migra dados para a tabela 'nota' no banco de dados.
 
@@ -60,7 +70,7 @@ class GerenciadorEtapas:
         sql_consulta_nota = f'''
         SELECT * FROM cadastro_aneel_go.nota
         WHERE uc = '{uc}' 
-        AND ss_do_parecer = '{ss_do_parecer}
+        AND ss_da_planilha = '{ss_da_planilha}
         '
         '''
         # Executa a consulta SQL
@@ -73,7 +83,7 @@ class GerenciadorEtapas:
             # Se não houver, cria um dicionário de inserção com os valores de 'uc' e 'ss_do_parecer'
             dicionario_insercao = {
                 'uc': uc
-                ,'ss_do_parecer': ss_do_parecer
+                ,'ss_da_planilha': ss_da_planilha
             }
             # Insere os dados na tabela 'nota' e obtém o ID do registro inserido
             id_nota = self.inst_register.registro_sucesso(

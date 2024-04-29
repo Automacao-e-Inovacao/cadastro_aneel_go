@@ -13,6 +13,7 @@ class Nota(Base):
 
     id = Column(Integer, primary_key=True)
     uc = Column(VARCHAR, nullable=False)
+    ss_da_planilha = Column(VARCHAR, nullable=False)
     ss_do_parecer = Column(VARCHAR, nullable=False)
     tempo_criacao = Column(DateTime)
     tempo_modificacao = Column(DateTime)
@@ -69,7 +70,7 @@ class Fila(Base):
 
     id = Column(Integer, primary_key=True)
     uc = Column(VARCHAR, nullable=False)
-    ss_do_parecer = Column(VARCHAR, nullable=False)
+    ss_da_planilha = Column(VARCHAR, nullable=False)
     servico = Column(VARCHAR, nullable=False)
     status_ss = Column(String, nullable=False)
     created_at = Column(DateTime)

@@ -60,9 +60,6 @@ if __name__ == "__main__":
         inst_readexcel = ReadExcelFile()
         statis_site_aneel = StaticSiteAneel()
         logger_processo = logging.Logger('')
-        inst_handler_personalizado = HandlerPersonalizado(inst_register=inst_register, logger=logger_processo)
-        logger_processo.setLevel(logging.DEBUG)
-        logger_processo.addHandler(inst_handler_personalizado)
         logger_processo.dicionario = {'rpa': rpa}
         
         logger_nota = logging.Logger('')
@@ -71,17 +68,17 @@ if __name__ == "__main__":
         logger_nota.setLevel(logging.DEBUG)
         logger_nota.addHandler(inst_handler_personalizado)
         
-        ## Reseta a tabela fila para inserir novos dados
-        # inst_register.reset_fila()
+        # # Reseta a tabela fila para inserir novos dados
+        inst_register.reset_fila()
         
-        ## Executa a atualização da planilha de conexões (Base para tratativa)
+        # # Executa a atualização da planilha de conexões (Base para tratativa)
         # inst_readexcel.executar_atualizacao(caminho_planilha=inst_readexcel.caminho_do_arquivo)
         
-        #Insere os dados da planilha de conexões no datamart
-        # inst_register.inserir_dados_no_datamart()
+        # # Insere os dados da planilha de conexões no datamart
+        inst_register.inserir_dados_no_datamart()
 
         sql_busca_fila = f'''
-            SELECT id, uc, ss_do_parecer FROM cadastro_aneel_go.fila
+            SELECT id, uc, ss_da_planilha FROM cadastro_aneel_go.fila
             where processado = False
             order by id asc
             '''
@@ -99,7 +96,7 @@ if __name__ == "__main__":
             inst_gerenciador_etapas.atualizar_fila_processado(id_nota_fila=nota_fila['id'])    
 
             id_tabela_nota = inst_gerenciador_etapas.migracao_para_tabela_nota(
-                uc=nota_fila['uc'], ss_do_parecer=nota_fila['ss_do_parecer']
+                uc=nota_fila['uc'], ss_da_planilha=nota_fila['ss_da_planilha']
                                                                                 )
 
             if id_tabela_nota is None:

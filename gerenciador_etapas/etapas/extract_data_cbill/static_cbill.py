@@ -1,12 +1,6 @@
 import logging
-from selenium import webnavegador
-from selenium.webnavegador.common.by import By
-# from selenium.webnavegador.support.ui import WebnavegadorWait
-# from selenium.webnavegador.support import expected_conditions as EC
-# from selenium.webnavegador.common.keys import Keys
-from datetime import datetime
-import pyautogui
-import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 import time
 import re
 
@@ -32,10 +26,9 @@ class FuncoesCbill:
         )
         pass
     
-    
     def iniciar_navegador(self):
-        chrome_options = webnavegador.ChromeOptions()
-        self.navegador = webnavegador.Chrome(options=chrome_options)
+        chrome_options = webdriver.ChromeOptions()
+        self.navegador = webdriver.Chrome(options=chrome_options)
         self.navegador.implicitly_wait(200)
         self.navegador.get('http://10.125.6.102:11090/cbill/loginPage.do')
         
@@ -84,7 +77,7 @@ class FuncoesCbill:
                     return True  # Indica que o clique foi bem-sucedido
                 except:
                     time.sleep(1)  # Espera 1 segundo antes de tentar novamente
-        return False  # Indica que não foi possível realizar o clique após o número máximo de tentativas
+        return False  
 
     def into_atendimento_ao_cliente(self, navegador):
         button_atendimento = '//*[@id="cswmMBtnmenuGroup1"]'

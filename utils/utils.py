@@ -23,7 +23,7 @@ class Utils:
         df = df.rename(
             columns={
                 'UC': 'uc',
-                'SS': 'ss_do_parecer',                                
+                'SS': 'ss_da_planilha',                                
                 'STATUS_SS':'status_ss',
                 'SERVICO':'servico',
             },

@@ -14,14 +14,22 @@ class CadastroSiteAneel:
         self.logger_nota = logger_nota
         self.conexao_datamart = inst_register
         self.static_site_aneel = inst_static_site_aneel
-        self.driver = webdriver.Chrome()
-        self.driver.implicitly_wait(60)
-
+        self.driver = None  # Inicializa o driver como None para ser atribuído posteriormente
         self.usuario_aneel = 'gd.goias@equatorialenergia.com.br'
         self.senha_aneel = 'EQTL01'
         self.empresa_abreviado = 'GO'
+        
+    def open_browser(self):
+        # Define as opções do Chrome
+        chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument("--headless")  # Execute o navegador em modo headless (sem interface gráfica)
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
 
-
+        # Inicializa o driver do Chrome
+        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver.implicitly_wait(60)  # Define um tempo de espera implícito de 60 segundos
+    
     def consultar_notas(self, sql_consulta):
         lista_de_notas = self.conexao_datamart.consultar_notas(sql=sql_consulta)
         return lista_de_notas
