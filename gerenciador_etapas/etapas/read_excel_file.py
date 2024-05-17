@@ -10,7 +10,8 @@ class ReadExcelFile:
     Responsável pela leitura da planilha e inclusão dos dados na tabela Fila
     """
     def __init__(self):
-        self.caminho_do_arquivo = r'\\55ASPDCARQ01\55Atende\Administrativo\04 - Planejamento e Controle\SENA\automacao\cadastro_aneel_go\base_cadastro_aneel_go.xlsx'
+        # self.caminho_do_arquivo = r'\\55ASPDCARQ01\55Atende\Administrativo\04 - Planejamento e Controle\SENA\automacao\cadastro_aneel_go\base_cadastro_aneel_go.xlsx'
+        self.caminho_do_arquivo = r'\\55aspdcarq01\55Atende\Administrativo\04 - Planejamento e Controle\SENA\automacao\cadastro_aneel_go\base_cadastro_aneel_go.csv'
         self.tabela = 'gerar_e_enviar.fila'
 
     def obter_ultima_modificacao_formatada(self):

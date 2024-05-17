@@ -56,52 +56,31 @@ class GerenciadorEtapas:
         )
            
     def migracao_para_tabela_nota(self, uc, ss_da_planilha) -> int | None:
-        """
-        Migra dados para a tabela 'nota' no banco de dados.
-
-        Args:
-            uc (str): O valor do campo 'uc' a ser inserido na tabela.
-            ss_do_parecer (str): O valor do campo 'ss_do_parecer' a ser inserido na tabela.
-
-        Returns:
-            int | None: O ID do registro inserido ou None, dependendo da operação realizada.
-        """
-        # Cria uma consulta SQL para verificar se já existem registros com os mesmos valores de 'uc' e 'ss_do_parecer'
         sql_consulta_nota = f'''
-        SELECT * FROM cadastro_aneel_go.nota
+        SELECT id, repetir FROM cadastro_aneel_go.nota
         WHERE uc = '{uc}' 
-        AND ss_da_planilha = '{ss_da_planilha}
-        '
+        AND ss_da_planilha = '{ss_da_planilha}'
         '''
-        # Executa a consulta SQL
         lista_notas = self.inst_register.consultar_notas(
             sql=sql_consulta_nota
         )
 
-        # Verifica se não há notas correspondentes na consulta
         if len(lista_notas) == 0: 
-            # Se não houver, cria um dicionário de inserção com os valores de 'uc' e 'ss_do_parecer'
             dicionario_insercao = {
-                'uc': uc
-                ,'ss_da_planilha': ss_da_planilha
+                'uc': uc,
+                'ss_da_planilha': ss_da_planilha
             }
-            # Insere os dados na tabela 'nota' e obtém o ID do registro inserido
             id_nota = self.inst_register.registro_sucesso(
                 dicionario=dicionario_insercao,
                 tabela='cadastro_aneel_go.nota'
             )
         else:
-            # Se houver notas correspondentes
             dicionario_nota = lista_notas[0]
-            # Verifica se a nota correspondente pode ser repetida (indicada pelo valor da coluna 'repetir')
             if dicionario_nota['repetir']:
-                # Se puder ser repetida, retorna o ID da nota existente
                 id_nota = dicionario_nota['id']
             else:
-                # Se não puder ser repetida, retorna None indicando que nenhum novo registro foi inserido
-                return None
+                return
         
-        # Retorna o ID do registro inserido ou None, dependendo da operação realizada
         return id_nota
 
     def definir_etapa(self, id_nota) -> tuple:
@@ -136,12 +115,13 @@ class GerenciadorEtapas:
             
             return id_etapa, etapa
     
-    def execucao(self, id_etapa, etapa, id_nota):
+    def execucao(self, id_etapa, etapa, id_nota, driver_aneel):
         if etapa == 'Verificar Cadastro Site ANEEL': 
-            self.inst_cadastro_site_aneel.verificar_cadastro()
+            self.inst_cadastro_site_aneel.verificar_cadastro(id_nota, driver_aneel)
             self.inst_register.atualizar_registro(dicionario={
                                                     'concluido': True
-                                                    ,'update_at': datetime.datetime.now()},
+                                                    # ,'tempo_criacao': datetime.datetime.now()
+                                                    },
                                                   tabela=self.tabela_etapa, id_=id_etapa)
             etapa = 'Extrair dados CBILL'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
@@ -149,21 +129,11 @@ class GerenciadorEtapas:
             id_etapa = etapa_fk
 
         if etapa == 'Extrair dados CBILL':
-            # self.inst_extracaoeqtlinfo.extracao(id_nota=id_nota)
+            self.inst_static_cbill.execucao(id_nota=id_nota)
             self.inst_register.atualizar_registro(dicionario={
                                                             'concluido': True
-                                                            ,'update_at': datetime.datetime.now()},
-                                                  tabela=self.tabela_etapa, id_=id_etapa)
-            etapa = 'Extrair dados SICAP'
-            etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
-                                                           tabela=self.tabela_etapa)
-            id_etapa = etapa_fk
-
-        if etapa == 'Extrair dados SICAP':
-            # self.inst_gerar_carta.criarcarta(id_nota=id_nota)
-            self.inst_register.atualizar_registro(dicionario={
-                                                            'concluido': True
-                                                            ,'update_at': datetime.datetime.now()},
+                                                            # ,'tempo_criacao': datetime.datetime.now()
+                                                            },
                                                   tabela=self.tabela_etapa, id_=id_etapa)
             etapa = 'Extrair dados GEDIS'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
@@ -171,10 +141,23 @@ class GerenciadorEtapas:
             id_etapa = etapa_fk
 
         if etapa == 'Extrair dados GEDIS':
-            # self.inst_conclusaocrm.conclusao_crm(id_nota=id_nota)
+            self.inst_static_gedis.execucao(id_nota=id_nota)
             self.inst_register.atualizar_registro(dicionario={
                                                             'concluido': True
-                                                            ,'update_at': datetime.datetime.now()},
+                                                            # ,'update_at': datetime.datetime.now()
+                                                            },
+                                                  tabela=self.tabela_etapa, id_=id_etapa)
+            etapa = 'Extrair dados SICAP'
+            etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
+                                                           tabela=self.tabela_etapa)
+            id_etapa = etapa_fk
+
+        if etapa == 'Extrair dados SICAP':
+            self.inst_static_sicap.execucao(id_nota=id_nota)
+            self.inst_register.atualizar_registro(dicionario={
+                                                            'concluido': True
+                                                            # ,'tempo_criacao': datetime.datetime.now()
+                                                            },
                                                   tabela=self.tabela_etapa, id_=id_etapa)
             etapa = 'Criar cadastro Site Aneel'
             etapa_fk = self.inst_register.registro_sucesso(dicionario={'etapa': etapa, 'nota_fk': id_nota},
@@ -182,10 +165,10 @@ class GerenciadorEtapas:
             id_etapa = etapa_fk
 
         if etapa == 'Criar cadastro Site Aneel':
-            # self.inst_concluir_nota.conclusao(id_nota=id_nota)
+            self.inst_cadastro_site_aneel.run(id_nota, driver_aneel)
             self.inst_register.atualizar_registro(dicionario={
                                                     'concluido': True
-                                                    # ,'update_at': datetime.datetime.now()
+                                                    # ,'tempo_criacao': datetime.datetime.now()
                                                     },
                                                   tabela=self.tabela_etapa, id_=id_etapa)
             self.inst_register.atualizar_registro(

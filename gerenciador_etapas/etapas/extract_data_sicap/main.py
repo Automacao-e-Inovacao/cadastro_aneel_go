@@ -12,18 +12,21 @@ class ExtracoesDadosSicap:
     def __init__(self, logger_nota: logging.Logger, inst_register: Registers) -> None:
         self.logger_nota = logger_nota
         self.conexao_datamart = inst_register
-        self.link_sicap = 'http://sistemassatelites.equatorial.corp:8080/Sicap-adm/'
-    
-    def iniciar_navegador(self):
+
+    def open_browser(self):
         # Define as opções do Chrome
         chrome_options = webdriver.ChromeOptions()
         # chrome_options.add_argument("--headless")  # Execute o navegador em modo headless (sem interface gráfica)
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox")
-
+        # chrome_options.add_argument("--disable-gpu")
+        # chrome_options.add_argument("--no-sandbox")
         # Inicializa o driver do Chrome
-        self.driver = webdriver.Chrome(options=chrome_options)
-        self.driver.implicitly_wait(60)
+        navegador = webdriver.Chrome(options=chrome_options)
+        navegador.maximize_window()
+        navegador.implicitly_wait(60)  # Define um tempo de espera implícito de 60 segundos
+        
+        navegador.get('http://sistemassatelites.equatorial.corp:8080/Sicap-adm/')
+        
+        return navegador
 
     def write_if_found(self, navegador, element, msg): 
         try_order = [By.ID, By.CLASS_NAME, By.XPATH, By.TAG_NAME, By.CSS_SELECTOR]
@@ -39,7 +42,7 @@ class ExtracoesDadosSicap:
             except:
                 pass
 
-    def click_if_found(self,element_click, navegador, max_attempts=10): 
+    def click_if_found(self, element_click, navegador, max_attempts=10): 
         try_order = [By.XPATH, By.ID, By.CLASS_NAME, By.TAG_NAME, By.CSS_SELECTOR]
         for locator_type in try_order:
             for _ in range(max_attempts):
@@ -53,7 +56,7 @@ class ExtracoesDadosSicap:
                     time.sleep(1)  # Espera 1 segundo antes de tentar novamente
         return False  
 
-    def login(self,navegador):
+    def login(self, navegador):
         element_user = '//*[@id="input_username"]'
         element_pwrd = '//*[@id="input_password"]'
         usuario_sicap = 'u5512983'
@@ -73,13 +76,6 @@ class ExtracoesDadosSicap:
             password.send_keys(senha_sicap, Keys.ENTER)
         except:
             pass
-
-    def logoff(self, navegador):
-        xpath_dropdown = '//*[@class="btn btn-default btn-sm dropdown-toggle"]'
-        elemento_sair = "//a[text()=' Sair']"
-        
-        self.click_if_found(xpath_dropdown, navegador)
-        self.click_if_found(elemento_sair, navegador)
 
     def click_lupa(self, navegador):
         clicar_lupa = '//*[@class="btn btn-default"]'
@@ -109,6 +105,7 @@ class ExtracoesDadosSicap:
 
     def click_projeto(self, navegador):
         classe = 'panel-title-link'
+        
         try:
             # Encontrar o elemento pelo nome da classe
             elemento = navegador.find_element(By.CLASS_NAME, classe)
@@ -158,11 +155,14 @@ class ExtracoesDadosSicap:
         try:
             # Encontrar o elemento pelo XPath fornecido
             elemento = navegador.find_element(By.XPATH, xpath_tipo_de_geracao)
-            
+
             # Obter o texto do elemento
             fonte_da_geracao = elemento.text
             
-            return {'fonte': fonte_da_geracao}
+            if 'Solar' in fonte_da_geracao:
+                fonte_da_geracao = 'UFV - Solar - Radiação solar'
+            
+            return {'tipo_fonte': fonte_da_geracao}
             
         except Exception as e:
             print(f"Erro ao obter texto do elemento pelo XPath: {str(e)}")
@@ -189,9 +189,9 @@ class ExtracoesDadosSicap:
         minutos_value = minutos_value.replace(",", ".").replace("_", "") + "00"
 
         # Construir a representação final da latitude com o sinal de menos
-        longitude_formatada = f"""-{graus_value}°{segundos_value}"{minutos_value}"""
+        latitude_formatada = f"""-{graus_value}°{segundos_value}"{minutos_value}"""
 
-        return {'grau_longitude': longitude_formatada}
+        return {'grau_latitude': latitude_formatada}
 
     def find_longitude(self, navegador):
         elemento_longitude = navegador.find_element(By.XPATH, "//div[text()='Longitude']")
@@ -214,18 +214,20 @@ class ExtracoesDadosSicap:
         minutos_value = minutos_value.replace(",", ".").replace("_", "") + "00"
 
         # Construir a representação final da longitude
-        longitude_formatada = f"""{graus_value}°{segundos_value}"{minutos_value}"""
+        longitude_formatada = f"""-{graus_value}°{segundos_value}"{minutos_value}"""
 
         return {'grau_longitude': longitude_formatada}
 
     def find_arranjos(self, navegador):
         elemento_arranjo = navegador.find_element(By.ID, "dadosProjetoForm:areaArranjos_input")
         arranjo_value = elemento_arranjo.get_attribute("value")
-        arranjo_value
         
-        return {'arranjo': arranjo_value}
+        # Substitui vírgulas por pontos no valor numérico
+        arranjo_value = arranjo_value.replace(',', '.')
 
-    def extract_value_modulos(navegador, texto_base):
+        return {'area_arranjo': arranjo_value}
+
+    def extract_value_modulos(self, navegador, texto_base):
         # Função que faz a extração dos dados de quandidade de modulos e inversores e a potência dos mesmos
         tabela_modulos = 'dadosProjetoForm:totalizadorModulos'
         elemento = navegador.find_element(by=By.ID, value=tabela_modulos)
@@ -262,6 +264,9 @@ class ExtracoesDadosSicap:
         quantidade_de_modulos = self.extract_value_modulos(navegador, texto_base)
         if quantidade_de_modulos is not None:
             
+            quantidade_de_modulos = float(quantidade_de_modulos.replace(',', '.'))
+            quantidade_de_modulos = int(quantidade_de_modulos)
+
             return {'quantidade_modulos': quantidade_de_modulos}  
         else:
             print(f"Texto não encontrado na string.")
@@ -271,6 +276,8 @@ class ExtracoesDadosSicap:
         pot_modulos_kwp = self.extract_value_modulos(navegador, texto_base)
         if pot_modulos_kwp is not None:
             
+            pot_modulos_kwp = pot_modulos_kwp.replace(',', '.')
+
             return {'pot_modulos_kwp': pot_modulos_kwp}  
         else:
             print(f"Texto não encontrado na string.")
@@ -310,7 +317,7 @@ class ExtracoesDadosSicap:
         
         if modelos:
             modelos_str = ' / '.join(modelos)
-            return {'modelos_modulos': modelos_str}
+            return {'modelo_modulo': modelos_str}
         else:
             return None
 
@@ -350,8 +357,12 @@ class ExtracoesDadosSicap:
         texto_base = "Quantidade Total de Inversores:"
         quantidade_de_inversores = self.extract_value_inversores(navegador, texto_base)
         if quantidade_de_inversores is not None:
-            
-            return {'quantidade_inversores': quantidade_de_inversores}  
+
+            quantidade_de_inversores = float(quantidade_de_inversores.replace(',', '.'))
+
+            quantidade_de_inversores = int(quantidade_de_inversores)
+
+            return {'qtde_inversores': quantidade_de_inversores}  
         else:
             print(f"Texto não encontrado na string.")
             
@@ -359,7 +370,9 @@ class ExtracoesDadosSicap:
         texto_base = "Potência Total dos Inversores (KW):"
         pot_inversores_kwp = self.extract_value_inversores(navegador, texto_base)
         if pot_inversores_kwp is not None:
-            
+
+            pot_inversores_kwp = pot_inversores_kwp.replace(',', '.')
+
             return {'pot_inversores_kwp': pot_inversores_kwp}  
         else:
             print(f"Texto não encontrado na string.")
@@ -379,7 +392,7 @@ class ExtracoesDadosSicap:
 
         if dados:
             valores_str = ' / '.join(dados)
-            return {'modelo_inversores': valores_str}
+            return {'modelo_inversor': valores_str}
         else:
             return None
 
@@ -398,66 +411,58 @@ class ExtracoesDadosSicap:
 
         if dados:
             valores_str = ' / '.join(dados)
-            return {'fab_inversores': valores_str}
+            return {'fab_inversor': valores_str}
         else:
             return None
 
     def find_infos_sicap(self, navegador):
-        dicionario = {}
-        dicionario.update(self.tipo_de_fonte_da_geracao(navegador))
-        dicionario.update(self.find_latitude(navegador))
-        dicionario.update(self.find_longitude(navegador))
-        dicionario.update(self.find_arranjos(navegador))
+        dicionario_principal = {}
+        dicionario_principal.update(self.tipo_de_fonte_da_geracao(navegador))
+        dicionario_principal.update(self.find_latitude(navegador))
+        dicionario_principal.update(self.find_longitude(navegador))
+        dicionario_principal.update(self.find_arranjos(navegador))
         
-        dicionario.update(self.find_potencia_total_dos_modulos(navegador))
-        dicionario.update(self.find_potencia_total_dos_inversores(navegador))
+        dicionario_principal.update(self.find_potencia_total_dos_modulos(navegador))
+        dicionario_principal.update(self.find_potencia_total_dos_inversores(navegador))
         
-        dicionario.update(self.find_quantidade_de_modulos(navegador))
-        dicionario.update(self.find_quantidade_de_inversores(navegador))
+        dicionario_principal.update(self.find_quantidade_de_modulos(navegador))
+        dicionario_principal.update(self.find_quantidade_de_inversores(navegador))
         
-        dicionario.update(self.find_fabricante_modulos(navegador))
-        dicionario.update(self.find_fabricante_inversores(navegador))
+        dicionario_principal.update(self.find_fabricante_modulos(navegador))
+        dicionario_principal.update(self.find_fabricante_inversores(navegador))
         
-        dicionario.update(self.find_modelos_modulos(navegador))
-        dicionario.update(self.find_modelos_inversores(navegador))
+        dicionario_principal.update(self.find_modelos_modulos(navegador))
+        dicionario_principal.update(self.find_modelos_inversores(navegador))
         
-        
-        return dicionario
-
-    def verificar_tempo_e_encerrar(self, navegador):
-        classe_relogio = 'relogio'
-        try:
-            relogio = self.navegador.find_element(By.CLASS_NAME, classe_relogio)
-            texto_relogio = relogio.text
-            
-            # Extrair horas e minutos do texto do relógio
-            horas, minutos = map(int, texto_relogio.split(':'))
-            
-            # Converter o tempo para minutos totais
-            tempo_total_minutos = horas * 60 + minutos
-            
-            # Verificar se o tempo restante é menor que 5 minutos (300 segundos)
-            if tempo_total_minutos < 300:
-                # Executar a função para encerrar o navegador
-                print("Tempo menor que 5minutos")
-                self.logoff(navegador)
-                self.login(navegador)
-            else:
-                print("Tempo maior que 5minutos")
-                # Continuar a execução
-                pass
-        except:
-            pass
+        return dicionario_principal
     
-    def scraping(self, id_nota):
-        navegador = self.iniciar_navegador()
-        navegador.maximize_window()
+    def scraping(self, ss_do_parecer):
+        navegador = self.open_browser()
+    
         self.login(navegador)
-        try:
-            self.verificar_tempo_e_encerrar(navegador)
-            navegador.implicitly_wait(5)
-            self.click_lupa(navegador)
-            dicionario = self.find_infos_sicap(navegador)
-            self.conexao_datamart.atualizar_registro(dicionario, self.tabela, id_nota)
-        except:
-            pass
+        self.click_lupa(navegador)
+        self.find_ss(navegador, ss_do_parecer)
+        self.click_projeto(navegador)
+        self.click_lupinha(navegador)
+        self.click_dados_de_projeto(navegador)
+        # time.sleep(2)
+        dicionario_principal = self.find_infos_sicap(navegador)
+
+        navegador.quit()
+        
+        return dicionario_principal
+    
+    def execucao(self, id_nota):
+        sql_consulta_uc = f'''
+            SELECT id, uc, ss_do_parecer FROM cadastro_aneel_go.nota
+            WHERE id = {id_nota}
+            '''
+            
+        tupla_uc = self.conexao_datamart.consultar_notas(sql=sql_consulta_uc)
+        ss_do_parecer = tupla_uc[0]['ss_do_parecer']
+        
+        dicionario_principal = self.scraping(ss_do_parecer=ss_do_parecer)
+        print(dicionario_principal)
+        self.conexao_datamart.atualizar_registro(dicionario=dicionario_principal, tabela='cadastro_aneel_go.nota', id_=id_nota)
+        
+           

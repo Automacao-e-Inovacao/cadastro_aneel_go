@@ -1,14 +1,15 @@
 from static.postgresql import ConexaoPostgresql
 from psycopg2.extensions import AsIs
+from unidecode import unidecode
 import pandas as pd
 
 class Registers:
-    usuario_datamart = "5512983"
+    usuario_datamart = "5507011"
     senha_datamart = "meuprimeiroacesso"
     nome_do_banco_de_dados_postgresql = "datamart"
     ip_conexao_postgresql = "10.6.2.211"
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:                    
         self.conexao = ConexaoPostgresql(self.__class__.ip_conexao_postgresql,
                                          self.__class__.nome_do_banco_de_dados_postgresql,
                                          self.__class__.usuario_datamart, self.__class__.senha_datamart)
@@ -64,7 +65,7 @@ class Registers:
         df = df.rename(
             columns={
                 'UC': 'uc',
-                'numero_ss': 'ss_da_planilha',                                
+                'NUMERO_SS': 'ss_da_planilha',                                
                 'STATUS_SS':'status_ss',
                 'SERVICO':'servico',
             },
@@ -85,7 +86,9 @@ class Registers:
             excel_file_path = read_excel_file.caminho_do_arquivo
             
             # Lendo o arquivo Excel
-            dataframe = pd.read_excel(excel_file_path, sheet_name="base", header=None)
+            dataframe = pd.read_csv(excel_file_path, sep=',', header=None, na_filter=False, encoding='latin1')
+            
+            dataframe = dataframe.applymap(lambda x: unidecode(str(x)) if isinstance(x, str) else x)
             
             # Renomeando as colunas do DataFrame
             dataframe = self.rename_dataframe_columns(dataframe)

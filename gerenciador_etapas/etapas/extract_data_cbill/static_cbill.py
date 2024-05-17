@@ -1,19 +1,38 @@
 import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
 import time
 import re
+from static.erros import ErroPrevisto
 
 from static.registrar_consultar import Registers
 
 class FuncoesCbill:
     def __init__(self, logger_nota: logging.Logger, inst_register=Registers) -> None:
         self.logger_nota = logger_nota
+        self.navegador = None
         self.conexao_datamart = inst_register
         self.main_frame = 'contentCRM'
         self.top_frame = 'sessionheader'
         self.mid_frame = 'principal'
         self.botton_frame = 'active_browser_funcs'
+        
+    def open_browser(self):
+        # Define as opções do Chrome
+        chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument("--headless")  # Execute o navegador em modo headless (sem interface gráfica)
+        # chrome_options.add_argument("--disable-gpu")
+        # chrome_options.add_argument("--no-sandbox")
+
+        # Inicializa o driver do Chrome
+        navegador = webdriver.Chrome(options=chrome_options)
+        navegador.implicitly_wait(60)  # Define um tempo de espera implícito de 60 segundos
+        
+        navegador.get('http://bm4e.equatorialenergia.com.br/cbill/loginPage.do')
+        
+        return navegador
 
     def buscar_no_banco(self):
         sql_consulta_nota = f'''
@@ -25,61 +44,74 @@ class FuncoesCbill:
             
         )
         pass
-    
-    def iniciar_navegador(self):
-        chrome_options = webdriver.ChromeOptions()
-        self.navegador = webdriver.Chrome(options=chrome_options)
-        self.navegador.implicitly_wait(200)
-        self.navegador.get('http://10.125.6.102:11090/cbill/loginPage.do')
-        
-        return self.navegador
 
-    def login(self):
-        erro_login = '//*[@id="MensagemErro"]/tbody/tr[2]/td[2]/table/tbody/tr/td[2]/span'
+    def login(self, navegador):
         xpath_login = '//*[@id="bodyDiv"]/div/form/table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td/table/tbody/tr[1]/td[2]/input'
         xpath_senha = '//*[@id="bodyDiv"]/div/form/table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td/table/tbody/tr[3]/td[2]/input'
         xpath_enter = '//*[@id="bodyDiv"]/div/form/table/tbody/tr[2]/td[2]/table/tbody/tr[4]/td/table/tbody/tr/td[3]/table/tbody/tr/td[2]'
-    
-        try:
-            # Preencher usuário e senha
-            self.navegador.find_element(by=By.XPATH, value=xpath_login).send_keys('TATE5507011')
-            self.navegador.find_element(by=By.XPATH, value=xpath_senha).send_keys('$mbegp3jJ')
-            
-            # Clicar no botão de login
-            self.navegador.find_element(by=By.XPATH, value=xpath_enter).click()
-            
-        except:
-            # Se houver erro, imprimir mensagem de erro
-            erro_login_element = self.navegador.find_element(by=By.XPATH, value=erro_login)
-            texto = erro_login_element.text
-            print(texto)
+
+        navegador.find_element(by=By.XPATH, value=xpath_login).send_keys('TATE5507011')
+        navegador.find_element(by=By.XPATH, value=xpath_senha).send_keys('$mbegp3jJ')
         
-    def search_frame(self, mainframe_id, request_frame_id):
+        # Clicar no botão de login
+        navegador.find_element(by=By.XPATH, value=xpath_enter).click()
+
+        try:
+            for _ in range(2):
+                try:
+                    navegador.implicitly_wait(1)
+                    navegador.find_element(By.XPATH, value = "//a[text()='Fechar']")
+                    navegador.get('http://bm4e.equatorialenergia.com.br/cbill/loginPage.do')
+                    # Preencher usuário e senha
+                    navegador.find_element(by=By.XPATH, value=xpath_login).send_keys('TATE5507011')
+                    navegador.find_element(by=By.XPATH, value=xpath_senha).send_keys('$mbegp3jJ')
+                    # Clicar no botão de login
+                    navegador.find_element(by=By.XPATH, value=xpath_enter).click()
+                    break
+                except:
+                    navegador.implicitly_wait(60)
+                    pass
+        except:
+            raise Exception('Erro ao efetuar login')
+        
+    def search_frame(self, navegador, mainframe_id, request_frame_id):
         while True:
             try:
-                self.navegador.switch_to.default_content()
-                self.navegador.switch_to.frame(mainframe_id)
-                request_frame = self.navegador.find_element(By.ID, request_frame_id)
-                self.navegador.switch_to.frame(request_frame)
+                navegador.switch_to.default_content()
+                navegador.switch_to.frame(mainframe_id)
+                request_frame = navegador.find_element(By.ID, request_frame_id)
+                navegador.switch_to.frame(request_frame)
                 break
             except:
                 pass
 
-    def click_if_found(self, element_click, max_attempts=10): 
+    def click_if_found(self, navegador, element_click, max_attempts=10): 
         try_order = [By.XPATH, By.ID, By.CLASS_NAME,By.TAG_NAME, By.CSS_SELECTOR]
         for locator_type in try_order:
             for _ in range(max_attempts):
                 try:
-                    element = self.navegador.find_element(locator_type, element_click)
+                    element = navegador.find_element(locator_type, element_click)
                     while not element.is_displayed():
                         pass
                     element.click()
                     return True  # Indica que o clique foi bem-sucedido
                 except:
                     time.sleep(1)  # Espera 1 segundo antes de tentar novamente
-        return False  
+        raise ErroPrevisto("Erro ao clicar no elemento", (element_click))
 
     def into_atendimento_ao_cliente(self, navegador):
+        titulo_aba_desejada = "CPqD Energia"
+        all_windows = navegador.window_handles
+
+        # Itera sobre cada identificador de janela/aba
+        for window_handle in all_windows:
+            # Alterna para cada janela/aba
+            navegador.switch_to.window(window_handle)
+            # Verifica se o título da aba é o desejado
+            if navegador.title == titulo_aba_desejada:
+                # Agora estamos na aba desejada
+                break
+            
         button_atendimento = '//*[@id="cswmMBtnmenuGroup1"]'
         button_atendimento_ao_cliente = '//*[@id="cswmItmmenuGroup1_0"]'
         while True:
@@ -87,11 +119,11 @@ class FuncoesCbill:
                 elemento_button_atendimento = navegador.find_element(by=By.XPATH, value=button_atendimento)
                 while not elemento_button_atendimento.is_displayed():
                     pass
-                elemento_button_atendimento.click()       
-                self.navegador.find_element(by=By.XPATH, value=button_atendimento_ao_cliente).click()
+                self.click_if_found(navegador, button_atendimento)      
+                navegador.find_element(by=By.XPATH, value=button_atendimento_ao_cliente).click()
                 break
             except:
-                pass
+                raise ErroPrevisto('Erro ao clicar em ir para atendimento ao cliente')
             
     def select_tab(self,navegador):
         # Obtem todos os identificadores de janelas/abas abertas
@@ -108,8 +140,8 @@ class FuncoesCbill:
                 return
             
     def consult_uc(self, navegador, mainframe, topframe, midframe, uc_cbill):
-        buscar = 'btFind'
-        control_o = 'receptionType6'
+        buscar = '//*[@id="btFind"]'
+        control_o = '//*[@id="receptionType6"]'
         uc_code = '//*[@id="ucCode"]'
         try:
             self.search_frame(navegador, mainframe, topframe)
@@ -133,56 +165,33 @@ class FuncoesCbill:
             self.search_frame(navegador, mainframe, midframe)
             self.click_if_found(navegador, buscar)
         except:
-            raise Exception("Failed to click Buscar")
+            raise ErroPrevisto("Failed to click Buscar")
         
-    def hist_atendimento(self,navegador, bottonframe, mainframe, midframe):
+    def hist_atendimento(self,navegador):
         try:
-            self.search_frame(navegador, mainframe, midframe)
-            self.navegador.find_elements(by=By.XPATH, value='//*[@class="textCellBdr"]')
-            element = self.navegador.find_element(by=By.XPATH, value='//a[contains(@href, "/crm-atendimento/protected/crm/customer/customerIdentificationDetail.do")]')
-            while not element.is_displayed():
-                pass
-            self.navegador.switch_to.default_content()
-            self.navegador.switch_to.frame(bottonframe)
-            element = '//*[@id="historico"]/div'
-            self.click_if_found(navegador, element)
+            actions = ActionChains(navegador)
+            actions.key_down(Keys.CONTROL).send_keys(Keys.F10).key_up(Keys.CONTROL).perform()
         except:
-            raise Exception("Failed to click Historico de Atendimento")
+            raise ErroPrevisto("Failed to click Historico de Atendimento")
         
-    def consultar_leitura(self,navegador, bottonframe, mainframe, midframe):
+    def consultar_leitura(self,navegador, mainframe, midframe):
         try:
             #Clicar em Consulta de Leituras (Ctrl + F8)
-            navegador.switch_to.default_content()
-            navegador.switch_to.frame(bottonframe)
-            navegador.find_element(by=By.XPATH, value='//*[@id="leituras"]/div').click()
+            actions = ActionChains(navegador)
+            actions.key_down(Keys.CONTROL).send_keys(Keys.F8).key_up(Keys.CONTROL).perform()
             
             self.search_frame(navegador, mainframe, midframe)
-            dados_da_uc = '//*[@id="FoldersActive"]/table/tbody/tr/td[1]/div[1]/table/tbody/tr/td[2]/p/a'
-            element = self.navegador.find_element(by=By.XPATH, value = dados_da_uc)
+            dados_da_uc = '//div[@id="FoldersActive"]/table/tbody/tr/td[1]/div[1]/table/tbody/tr/td[2]/p/a'
+            element = navegador.find_element(by=By.XPATH, value = dados_da_uc)
             while not element.is_displayed():
                 pass
-            element.click()
-            self.navegador.find_element(by=By.XPATH, value= dados_da_uc).click()
-        except Exception as e:
-            return f"Erro ao identificar texto da tabela: {e}"
-            
-    def consulta_de_contas(self,navegador, bottonframe, mainframe, midframe):
-        try:
-            self.search_frame(navegador, mainframe, midframe)
-            navegador.find_elements(by=By.XPATH, value='//*[@class="textCellBdr"]')
-            element = navegador.find_element(by=By.XPATH, value='//a[contains(@href, "/crm-atendimento/protected/crm/customer/customerIdentificationDetail.do")]')
-            while not element.is_displayed():
-                pass
-            navegador.switch_to.default_content()
-            navegador.switch_to.frame(bottonframe)
-            element = navegador.find_element(by=By.XPATH, value='//*[@id="contas"]')
-            element.click()
-            pass
-        except Exception as e:
-            return f"Erro ao identificar texto da tabela: {e}"
+            ActionChains(navegador).key_down(Keys.ALT).send_keys('u').key_up(Keys.ALT).perform()
+        except:
+            return ErroPrevisto("Erro ao identificar texto da tabela: {e}")
         
-    def encontrar_conexao(self,navegador, mainframe, midframe,  buscar, ss_da_planilha):
+    def encontrar_conexao(self, navegador, mainframe, midframe, ss_da_planilha):
         ss = '//*[@id="SS"]'
+        buscar = '//*[@id="btFind"]'
         try:
             navegador.switch_to.default_content()
             navegador.switch_to.frame(mainframe)
@@ -207,10 +216,10 @@ class FuncoesCbill:
                 print("Nenhum quinto elemento correspondente encontrado.")
                 
         except:
-            raise Exception("Failed to Encontrar SS Parecer de Acesso")
-        
-    def get_first_element_and_matching_element(navegador, ss_da_planilha):
-            # Nome da classe do elemento que você está procurando
+            raise ErroPrevisto("Failed to Encontrar SS Parecer de Acesso")
+
+    def get_first_element_and_matching_element(self, navegador, ss_da_planilha):
+        # Nome da classe do elemento que você está procurando
         class_name = 'tableHV'
         try:
             first_element_id = None
@@ -242,37 +251,45 @@ class FuncoesCbill:
                         break  # Pare a iteração, uma vez que encontrou um valor igual
             
             return first_element_id, matching_element
-        
+            
         except Exception as e:
             print("Erro ao encontrar o elemento:", e)
             return None, None
 
     def ver_detalhes_do_cliente(self,navegador, mainframe, midframe):
+        actions = ActionChains(navegador)
+        actions.key_down(Keys.CONTROL).send_keys(Keys.F9).key_up(Keys.CONTROL).perform()
+        
         self.search_frame(navegador, mainframe, midframe)
+        
+        actions = ActionChains(navegador)
+        actions.key_down(Keys.CONTROL).send_keys(Keys.F10).key_up(Keys.CONTROL).perform()
         ver_detalhes_do_cliente = '//a[contains(@href, "/crm-atendimento/protected/crm/customer/customerIdentificationDetail.do")]'
+        elemento = navegador.find_element(by=By.XPATH, value = ver_detalhes_do_cliente)
+        while not elemento.is_displayed():
+            pass
         while True:
             try:
                 self.click_if_found(navegador, ver_detalhes_do_cliente)
                 break
             except:
-                raise Exception("Falha ao ir para ver detalhes do cliente")
+                raise ErroPrevisto("Falha ao ir para ver detalhes do cliente")
 
-    def identificar_texto_tabela(self,navegador, mainframe, midframe):
+    def identificar_texto_tabela(self, navegador, mainframe, midframe, num_table):
         self.search_frame(navegador, mainframe, midframe)
         try:
             # Consulta os elementos pela classe 'textCellBdr'
             elementos = navegador.find_elements(by=By.XPATH, value='//*[@class="textCellBdr"]')
             
-            # Verifica se há pelo menos dois elementos encontrados
-            if len(elementos) >= 2:
-                # Retorna o texto do primeiro e do segundo elemento encontrados
-                texto_1 = elementos[0].text
-                texto_2 = elementos[1].text
-                return texto_1, texto_2
+            # Verifica se há pelo menos um elemento encontrado
+            if len(elementos) > num_table:
+                # Retorna o texto do elemento correspondente ao número da tabela
+                texto = elementos[num_table].text
+                return texto
             else:
-                return "Menos de dois elementos encontrados com a classe 'textCellBdr'."
-        except Exception as e:
-            return f"Erro ao identificar texto da tabela: {e}"    
+                return f"Número da tabela {num_table} inválido."
+        except:
+            raise ErroPrevisto("Erro ao identificar texto da tabela")
 
     def extrair_nome_e_cpf(self,navegador):
         identificacao = '//*[@id="FoldersActive"]/table/tbody/tr[2]/td[1]/div[1]/table/tbody/tr/td[2]/a'
@@ -354,11 +371,11 @@ class FuncoesCbill:
             else:
                 # Se nenhuma tabela for encontrada, retornar uma mensagem indicando isso
                 return "Nenhuma tabela encontrada."
-        except Exception as e:
-            # Se ocorrer algum erro, retornar a mensagem de erro
-            return f"Erro ao extrair email e telefone: {e}"
+        except:
+            raise ErroPrevisto('Erro ao extrair email e telefone')
 
-    def extrair_dados_da_uc(texto_tabela):
+    def extrair_dados_da_uc(self, navegador, mainframe, midframe, num_table):
+        texto_tabela = self.identificar_texto_tabela(navegador, mainframe, midframe, num_table)
         try:
             # Dividir o texto da tabela em linhas
             linhas = texto_tabela.split('\n')
@@ -367,31 +384,38 @@ class FuncoesCbill:
             grupo_subgrupo = linhas[2].strip()
             grupo_subgrupo = grupo_subgrupo.split(' - ')[1].strip()  # Apenas a segunda parte do texto
             
-            # Tentar extrair o CEP e a localidade da linha 27
-            linha_cep_localidade = linhas[27]
-
-            # Extrair o CEP usando expressão regular
-            cep_match = re.search(r"\b\d{5}-\d{3}\b", linha_cep_localidade)
-            if cep_match:
-                cep = cep_match.group()
+            classe_consumo_linha = linhas[17].strip()
+            partes = classe_consumo_linha.split('|', 1)
+            if len(partes) >= 1:
+                classe_consumo = partes[0].strip()
+                classe_consumo = re.sub(r"[^a-zA-Z]", "", classe_consumo).capitalize()
             else:
-                # Se não encontrar o CEP na linha 27, tentar na linha 28
-                linha_cep_localidade = linhas[28]
-                cep_match = re.search(r"\b\d{5}-\d{3}\b", linha_cep_localidade)
-                cep = cep_match.group() if cep_match else None
+                classe_consumo = None
+            
+            # Inicializar variáveis para o CEP e a localidade
+            cep = None
+            localidade = None
+            linha_cep_encontrada = None
 
-            # Extrair a localidade
-            localidade_match = re.search(r"^\w+", linha_cep_localidade.lower())
-            localidade = localidade_match.group() if localidade_match else None
+            # Iterar sobre todas as linhas para encontrar o padrão do CEP
+            for linha_index, linha in enumerate(linhas):
+                cep_match = re.search(r"\b\d{5}-\d{3}\b", linha)
+                if cep_match:
+                    # Se encontrar o padrão do CEP, guardar a linha e extrair o CEP
+                    cep = cep_match.group()
+                    localidade_match = re.search(r"^\w+(?:\s+\w+)*", linha.lower())
+                    localidade = localidade_match.group() if localidade_match else None
+                    linha_cep_encontrada = linha_index
+                    break
 
             # Retornar os valores encontrados
-            return {'gru_tar': grupo_subgrupo, 'localidade': localidade, 'cep': cep}
+            return {'gru_tar': grupo_subgrupo, 'municipio': localidade, 'cep': cep, 'classe_consumo': classe_consumo}
             
         except Exception as e:
-            print("Erro ao extrair dados da UC:", e)
-            return None
+            raise ErroPrevisto("Erro ao extrair dados da UC:", {e})
         
-    def extrair_uc_e_endereco(texto_tabela):
+    def extrair_uc_e_endereco(self,navegador, mainframe, midframe, num_table):
+        texto_tabela = self.identificar_texto_tabela(navegador, mainframe, midframe, num_table)
         try:
             # Dividir o texto da primeira tabela em linhas
             linhas_1 = texto_tabela.split('\n')
@@ -412,7 +436,7 @@ class FuncoesCbill:
             return {'conta_contrato': uc, 'endereco': endereco}
             
         except Exception as e:
-            print("Erro ao extrair informações de contato:", e)
+            ErroPrevisto("Erro ao extrair informações de contato:", e)
             return None, None
 
     def extrair_data_da_construcao(self,navegador, mainframe, midframe):
@@ -428,9 +452,9 @@ class FuncoesCbill:
             data = data_completa.split()[0]
 
             # Criar o dicionário com a chave 'data_da_construcao' e o valor completo
-            return {'data_da_construcao': data}
+            return {'data_solicitacao_conexao_gd': data}
         except Exception as e:
-            print("Erro ao encontrar data da construção:", e)
+            ErroPrevisto("Erro ao encontrar data da construção:", e)
             return None
         
     def extrair_data_da_conexao(self,navegador, mainframe, midframe):
@@ -444,7 +468,7 @@ class FuncoesCbill:
             iframe_element = navegador.find_element(By.ID, 'write_off_date_frame')
 
             # Mudar para o contexto do iframe
-            self.navegador.switch_to.frame(iframe_element)
+            navegador.switch_to.frame(iframe_element)
 
             # Encontrar todos os elementos <tr> dentro do iframe
             elementos_tr = navegador.find_elements(By.TAG_NAME, 'tr')
@@ -459,46 +483,68 @@ class FuncoesCbill:
                 
                 data_da_conexao = texto_segundo_tr.split()[3]
                 
-                return {'data_da_conexao': data_da_conexao}
+                return {'data_aprov_p_conexao': data_da_conexao}
             else:
                 return numero_tr, "Não há elementos suficientes"
         except Exception as e:
             print("Erro ao encontrar elemento e contar tr:", e)
             return None, None
+    
+    def extrair_modalidade(self, navegador, mainframe, midframe, uc_cbill):
+        try:
+            actions = ActionChains(navegador)
+            actions.key_down(Keys.CONTROL).send_keys(Keys.F3).key_up(Keys.CONTROL).perform()
+            self.search_frame(navegador, mainframe, midframe)
+            element = navegador.find_element(by=By.XPATH, value='//*[@id="consultCompensationLink"]')
+            element.click()
+            elemento_tr = navegador.find_element(By.XPATH, f'//td[text()="{uc_cbill}"]/ancestor::tr')
+            texto = elemento_tr.text
+            tabela = texto.split('\n')
+                
+            # Remove as duas primeiras e as duas últimas linhas do texto
+            linhas_restantes = tabela[2:-2]
+
+            # Calcula a quantidade de linhas restantes
+            quantidade_linhas = len(linhas_restantes)
+
+            if len(linhas_restantes) > 2:
+                return {'modalidade': 'Autoconsumo remoto', 'qtd_gd': quantidade_linhas}
+            else:
+                return {'modalidade': 'Geração na própria UC', 'qtd_gd': quantidade_linhas}
+        except Exception as e:
+            return f"Erro ao identificar texto da tabela: {e}"
         
-    def inserir_dados_no_banco(self,navegador, midframe, mainframe, bottonframe, ss, buscar, ss_da_planilha):
+    def inserir_dados_no_banco(self,navegador, midframe, mainframe, ss_da_planilha, uc_cbill):
         dicionario_principal = {}
         dicionario_principal = dicionario_principal | self.extrair_email_e_tel(navegador)
         dicionario_principal = dicionario_principal | self.extrair_nome_e_cpf(navegador)
-        self.consultar_leitura(navegador, bottonframe, mainframe, midframe)
-        texto_1, texto_2 = self.identificar_texto_tabela(navegador, mainframe, midframe)
-        dicionario_principal = dicionario_principal | self.extrair_uc_e_endereco(texto_1)
-        dicionario_principal = dicionario_principal | self.extrair_dados_da_uc(texto_2)
-        self.hist_atendimento(navegador, bottonframe, mainframe, midframe)
-        self.encontrar_conexao(navegador, mainframe, midframe, ss, buscar, ss_da_planilha)
+        self.consultar_leitura(navegador, mainframe, midframe)
+        dicionario_principal = dicionario_principal | self.extrair_uc_e_endereco(navegador, mainframe, midframe, num_table=0)
+        dicionario_principal = dicionario_principal | self.extrair_dados_da_uc(navegador, mainframe, midframe, num_table=1)
+        self.hist_atendimento(navegador)
+        self.encontrar_conexao(navegador, mainframe, midframe, ss_da_planilha)
         dicionario_principal = dicionario_principal | self.extrair_data_da_conexao(navegador, mainframe, midframe)
         dicionario_principal = dicionario_principal | self.extrair_data_da_construcao(navegador, mainframe, midframe)
+        dicionario_principal = dicionario_principal | self.extrair_modalidade(navegador, mainframe, midframe, uc_cbill)
             
         return dicionario_principal
 
-    def consultar_unidades(self,navegador):
-            
-        navegador = self.iniciar_navegador()
-        navegador.implicitly_wait(1)
-        self.login(self.navegador)
-
+    def scraping(self, uc_cbill, ss_da_planilha):
+        
+        navegador = self.open_browser()
+        
+        self.login(navegador)
+        
         self.into_atendimento_ao_cliente(navegador)
-
+        
         self.select_tab(navegador)
+        
+        self.consult_uc(navegador, self.main_frame, self.top_frame, self.mid_frame, uc_cbill)
 
-    def scraping(self):
+        self.ver_detalhes_do_cliente(navegador, self.main_frame, self.mid_frame)
 
-        self.consult_uc(self.navegador, self.main_frame, self.top_frame, self.mid_frame, self.uc_cbill,)
+        dicionario_principal = self.inserir_dados_no_banco(navegador, self.mid_frame, self.main_frame, ss_da_planilha, uc_cbill)
 
-        self.hist_atendimento(self.navegador, self.botton_frame, self.main_frame, self.mid_frame)
-
-        self.ver_detalhes_do_cliente(self.navegador, self.main_frame, self.mid_frame)
-
-        dicionario_principal = self.inserir_dados_no_banco(self.navegador)
+        navegador.quit()
 
         return dicionario_principal

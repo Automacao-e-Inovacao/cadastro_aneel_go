@@ -50,6 +50,7 @@ if __name__ == "__main__":
         from gerenciador_etapas.etapas.read_excel_file import ReadExcelFile
         from gerenciador_etapas.main import GerenciadorEtapas
 
+
         logger_processo = logging.Logger('')
         
         rpa = 'cadastro_aneel_go'
@@ -58,7 +59,7 @@ if __name__ == "__main__":
         inst_register = Registers()
         datamart = DatamartRepository()
         inst_readexcel = ReadExcelFile()
-        statis_site_aneel = StaticSiteAneel()
+        statics_site_aneel = StaticSiteAneel()
         logger_processo = logging.Logger('')
         logger_processo.dicionario = {'rpa': rpa}
         
@@ -67,15 +68,13 @@ if __name__ == "__main__":
                                                               logger=logger_nota)
         logger_nota.setLevel(logging.DEBUG)
         logger_nota.addHandler(inst_handler_personalizado)
+
         
         # # Reseta a tabela fila para inserir novos dados
-        inst_register.reset_fila()
-        
-        # # Executa a atualização da planilha de conexões (Base para tratativa)
-        # inst_readexcel.executar_atualizacao(caminho_planilha=inst_readexcel.caminho_do_arquivo)
-        
+        # inst_register.reset_fila()
+
         # # Insere os dados da planilha de conexões no datamart
-        inst_register.inserir_dados_no_datamart()
+        # inst_register.inserir_dados_no_datamart()
 
         sql_busca_fila = f'''
             SELECT id, uc, ss_da_planilha FROM cadastro_aneel_go.fila
@@ -87,18 +86,21 @@ if __name__ == "__main__":
             inst_register=inst_register,
             logger_nota=logger_nota,
             logger_processo=logger_processo,
-            static_site_aneel=statis_site_aneel
+            static_site_aneel=statics_site_aneel
             )
         
         for nota_fila in lista_de_notas_fila:
-            
+            from gerenciador_etapas.etapas.cadastro_site_aneel.main import CadastroSiteAneel
+            inst_cadastro_site_aneel = CadastroSiteAneel(logger_nota= logger_nota,
+                                            inst_register=inst_register,
+                                            inst_static_site_aneel=statics_site_aneel
+                                            )
             #Mandando da tabela fila pra tabela nota               
             inst_gerenciador_etapas.atualizar_fila_processado(id_nota_fila=nota_fila['id'])    
 
             id_tabela_nota = inst_gerenciador_etapas.migracao_para_tabela_nota(
                 uc=nota_fila['uc'], ss_da_planilha=nota_fila['ss_da_planilha']
                                                                                 )
-
             if id_tabela_nota is None:
                 continue
             id_etapa, etapa = inst_gerenciador_etapas.definir_etapa(
@@ -110,11 +112,13 @@ if __name__ == "__main__":
             }
             
             #Execução das extrações de dados e cadastro
+            driver_aneel = inst_cadastro_site_aneel.iniciar_navegador()
             try:
                 inst_gerenciador_etapas.execucao(
                     id_etapa = id_etapa,
                     etapa = etapa,
-                    id_nota = id_tabela_nota
+                    id_nota = id_tabela_nota,
+                    driver_aneel = driver_aneel
                 )
                 
             except Exception as excecao:
@@ -131,8 +135,8 @@ if __name__ == "__main__":
                                                         id_=id_tabela_nota)
                 else:
                     string_erro = tratamento_excecao()
-                    logger_nota.error(string_erro, str(type(excecao)))
                     print(string_erro)
+                    logger_nota.error(string_erro, str(type(excecao)))
 
     except Exception as excecao:
         try:

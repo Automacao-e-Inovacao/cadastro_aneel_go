@@ -43,7 +43,7 @@ class Utils:
             read_excel_file = ReadExcelFile()
             excel_file_path = read_excel_file.caminho_do_arquivo
             
-            df = pd.read_excel(excel_file_path, sheet_name="Base", header=None, na_filter=False)
+            df = pd.read_csv(excel_file_path, sep=',', header=None, na_filter=False)
             
             # Renomeando colunas
             df = self.rename_dataframe_columns(df)
